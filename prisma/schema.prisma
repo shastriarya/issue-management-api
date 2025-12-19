@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  name  String
+  users User[]
+  issues Issue[]
+}
+
+model User {
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  role           Role
+  organizationId String @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Issue {
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  description    String
+  status         IssueStatus @default(OPEN)
+  assigneeId     String?     @db.ObjectId
+  organizationId String     @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  activities     Activity[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([organizationId])
+  @@index([assigneeId])
+}
+
+model Activity {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  issueId       String   @db.ObjectId
+  issue         Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  field         String
+  oldValue      String?
+  newValue      String
+  organizationId String  @db.ObjectId
+  createdAt     DateTime @default(now())
+
+  @@index([issueId])
+  @@index([organizationId])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
